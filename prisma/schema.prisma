@@ -30,12 +30,15 @@ model User {
 model Password {
   hash String
 
+  createdAt DateTime @default(now())
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String @unique
 }
 
 model PasswordResetToken {
-  token     String   @id @default(cuid())
+  token String @id @default(cuid())
+
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
