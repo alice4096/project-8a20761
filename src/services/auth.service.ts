@@ -161,28 +161,30 @@ export async function resetPassword({
   passwordResetToken: string
   userId: string
 }) {
-  // throws if the reset token wasn't issued for this user or has expired
-  await prisma.passwordResetToken.delete({
-    where: {
-      createdAt: {
-        gte: new Date(Date.now() - PASSWORD_RESET_TOKEN_EXPIRATION),
+  return prisma.$transaction(async prisma => {
+    // throws if the reset token wasn't issued for this user or has expired
+    await prisma.passwordResetToken.delete({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - PASSWORD_RESET_TOKEN_EXPIRATION),
+        },
+        token: passwordResetToken,
+        userId,
       },
-      token: passwordResetToken,
-      userId,
-    },
+    })
+
+    const hashedPassword = await getPasswordHash(newPassword)
+
+    // throws if record is not updated as expected
+    await prisma.password.update({
+      where: { userId },
+      data: {
+        createdAt: new Date(),
+        hash: hashedPassword,
+        userId,
+      },
+    })
+
+    await prisma.apiKey.deleteMany({ where: { userId } })
   })
-
-  const hashedPassword = await getPasswordHash(newPassword)
-
-  // throws if record is not updated as expected
-  await prisma.password.update({
-    where: { userId },
-    data: {
-      createdAt: new Date(),
-      hash: hashedPassword,
-      userId,
-    },
-  })
-
-  await prisma.apiKey.deleteMany({ where: { userId } })
 }
